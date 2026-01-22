@@ -54,12 +54,12 @@ class CirculationNormale(Scenario):
         Durées standard pour circulation normale
         
         Returns:
-            dict: Vert=5s, Orange=2s, Rouge=5s
+            dict: Vert=8s, Orange=3s, Rouge=2s (transition)
         """
         return {
-            'vert': 5.0,    # 5 secondes
-            'orange': 2.0,  # 2 secondes
-            'rouge': 5.0    # 5 secondes
+            'vert': 8.0,    # 8 secondes - Plus de temps pour passer
+            'orange': 3.0,  # 3 secondes - Temps de ralentir
+            'rouge': 2.0    # 2 secondes - Transition sécurité
         }
     
     def get_config_voitures(self):
@@ -70,11 +70,11 @@ class CirculationNormale(Scenario):
             dict: Configuration de base
         """
         return {
-            'nombre_max': 8,           # Nombre modéré
-            'vitesse_normale': 3.0,    # Vitesse normale
-            'intervalle_spawn': 3.0,   # Nouvelle voiture toutes les 3 secondes
-            'acceleration': 0.5,       # Accélération progressive
-            'deceleration': 0.8        # Freinage fluide
+            'nombre_max': 6,           # Nombre modéré (réduit de 8 à 6)
+            'vitesse_normale': 1.5,    # Vitesse RÉDUITE (de 3.0 à 1.5)
+            'intervalle_spawn': 4.0,   # Nouvelle voiture toutes les 4 secondes (au lieu de 3)
+            'acceleration': 0.3,       # Accélération plus lente (de 0.5 à 0.3)
+            'deceleration': 0.6        # Freinage plus doux (de 0.8 à 0.6)
         }
 
 
@@ -92,9 +92,9 @@ class HeureDePointe(Scenario):
             dict: Vert prolongé, Orange réduit, Rouge raccourci
         """
         return {
-            'vert': 8.0,    # Vert prolongé (8 secondes)
-            'orange': 1.5,  # Orange réduit (1.5 secondes)
-            'rouge': 3.0    # Rouge raccourci (3 secondes)
+            'vert': 10.0,   # Vert prolongé (10 secondes)
+            'orange': 2.5,  # Orange moyen (2.5 secondes)
+            'rouge': 1.5    # Rouge raccourci (1.5 secondes)
         }
     
     def get_config_voitures(self):
@@ -105,11 +105,11 @@ class HeureDePointe(Scenario):
             dict: Nombre élevé, apparition fréquente
         """
         return {
-            'nombre_max': 15,          # Nombre élevé de voitures
-            'vitesse_normale': 2.5,    # Vitesse légèrement réduite
-            'intervalle_spawn': 1.5,   # Apparition fréquente (1.5s)
-            'acceleration': 0.3,       # Démarrage plus lent
-            'deceleration': 1.0        # Freinage normal
+            'nombre_max': 10,          # Nombre élevé de voitures
+            'vitesse_normale': 1.2,    # Vitesse réduite (trafic dense)
+            'intervalle_spawn': 2.5,   # Apparition fréquente (2.5s)
+            'acceleration': 0.2,       # Démarrage lent
+            'deceleration': 0.7        # Freinage normal
         }
 
 

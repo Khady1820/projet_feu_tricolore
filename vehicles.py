@@ -20,7 +20,7 @@ class Vehicle:
         Args:
             x (float): Position X initiale
             y (float): Position Y initiale
-            direction (str): 'horizontal' ou 'vertical'
+            direction (str): 'nord', 'sud', 'est', 'ouest'
             logger (Logger): Instance du logger
             scenario_config (dict): Configuration du scénario actuel
         """
@@ -55,11 +55,15 @@ class Vehicle:
         self.turtle.goto(x, y)
 
         
-        # Orientation selon la direction
-        if direction == 'horizontal':
+        # Orientation selon la direction (4 directions)
+        if direction == 'est':  # Vient de l'ouest, va vers l'est
             self.turtle.setheading(0)  # Vers la droite
-        else:
+        elif direction == 'ouest':  # Vient de l'est, va vers l'ouest
+            self.turtle.setheading(180)  # Vers la gauche
+        elif direction == 'nord':  # Vient du sud, va vers le nord
             self.turtle.setheading(90)  # Vers le haut
+        elif direction == 'sud':  # Vient du nord, va vers le sud
+            self.turtle.setheading(270)  # Vers le bas
         
         print(f"🚗 Voiture #{self.id} créée à ({x}, {y}) - Direction: {direction}")
     
@@ -80,11 +84,17 @@ class Vehicle:
     def avancer(self):
         """Fait avancer la voiture selon sa vitesse et direction"""
         if self.vitesse > 0:
-            if self.direction == 'horizontal':
+            if self.direction == 'est':
                 self.x += self.vitesse
                 self.turtle.goto(self.x, self.y)
-            else:  # vertical
+            elif self.direction == 'ouest':
+                self.x -= self.vitesse
+                self.turtle.goto(self.x, self.y)
+            elif self.direction == 'nord':
                 self.y += self.vitesse
+                self.turtle.goto(self.x, self.y)
+            elif self.direction == 'sud':
+                self.y -= self.vitesse
                 self.turtle.goto(self.x, self.y)
     
     def arreter(self):
@@ -132,10 +142,14 @@ class Vehicle:
         Returns:
             bool: True si la voiture est dans la zone avant le feu
         """
-        if self.direction == 'horizontal':
+        if self.direction == 'est':
             return self.x < position_feu and self.x > position_feu - marge
-        else:  # vertical
+        elif self.direction == 'ouest':
+            return self.x > position_feu and self.x < position_feu + marge
+        elif self.direction == 'nord':
             return self.y < position_feu and self.y > position_feu - marge
+        elif self.direction == 'sud':
+            return self.y > position_feu and self.y < position_feu + marge
     
     def est_hors_ecran(self, limite=400):
         """
@@ -275,47 +289,45 @@ if __name__ == "__main__":
     # Initialiser l'écran Turtle
     screen = turtle.Screen()
     screen.setup(width=600, height=600)
-    screen.title("Test Vehicles")
+    screen.title("Test Vehicles - 4 Directions")
     screen.bgcolor("lightgray")
     screen.tracer(0)
     
-    print("\n1️⃣ Création de voitures de test:")
+    print("\n1️⃣ Création de voitures de test (4 directions):")
     
-    # Créer quelques voitures
-    voiture1 = Vehicle(-200, 0, 'horizontal', logger, config_test)
-    voiture2 = Vehicle(0, -200, 'vertical', logger, config_test)
+    # Créer des voitures dans les 4 directions
+    voiture_est = Vehicle(-200, 0, 'est', logger, config_test)
+    voiture_ouest = Vehicle(200, 0, 'ouest', logger, config_test)
+    voiture_nord = Vehicle(0, -200, 'nord', logger, config_test)
+    voiture_sud = Vehicle(0, 200, 'sud', logger, config_test)
     
-    print(f"\n   {voiture1}")
-    print(f"   {voiture2}")
+    print(f"\n   {voiture_est}")
+    print(f"   {voiture_ouest}")
+    print(f"   {voiture_nord}")
+    print(f"   {voiture_sud}")
     
     print("\n2️⃣ Simulation de mouvement (5 secondes):")
     print("   Les voitures vont avancer...")
     
     # Simuler le mouvement
     for i in range(50):
-        voiture1.avancer()
-        voiture2.avancer()
+        voiture_est.avancer()
+        voiture_ouest.avancer()
+        voiture_nord.avancer()
+        voiture_sud.avancer()
         screen.update()
         time.sleep(0.1)
     
-    print(f"\n   Voiture 1 après mouvement: {voiture1}")
-    print(f"   Voiture 2 après mouvement: {voiture2}")
+    print(f"\n   Voiture EST après mouvement: {voiture_est}")
+    print(f"   Voiture OUEST après mouvement: {voiture_ouest}")
+    print(f"   Voiture NORD après mouvement: {voiture_nord}")
+    print(f"   Voiture SUD après mouvement: {voiture_sud}")
     
-    print("\n3️⃣ Test arrêt et redémarrage:")
-    
-    # Test arrêt
-    for i in range(5):
-        voiture1.arreter()
-        print(f"   Freinage {i+1}: vitesse = {voiture1.vitesse:.2f}")
-    
-    # Test redémarrage
-    for i in range(10):
-        voiture1.demarrer()
-        print(f"   Accélération {i+1}: vitesse = {voiture1.vitesse:.2f}")
-    
-    print("\n4️⃣ Nettoyage:")
-    voiture1.detruire()
-    voiture2.detruire()
+    print("\n3️⃣ Nettoyage:")
+    voiture_est.detruire()
+    voiture_ouest.detruire()
+    voiture_nord.detruire()
+    voiture_sud.detruire()
     
     print("\n" + "=" * 60)
     print("✅ Test terminé - Fermez la fenêtre Turtle pour continuer")

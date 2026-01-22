@@ -23,11 +23,12 @@ class TurtleScene:
         self.screen.bgcolor("lightgray")
         self.screen.tracer(0)  # Désactive le rafraîchissement automatique pour performance
         
+        # 4 feux (un pour chaque direction)
         self.feu_turtles = {
-            'nord': {},    # Feu pour direction Nord
-            'sud': {},     # Feu pour direction Sud
-            'est': {},     # Feu pour direction Est
-            'ouest': {}    # Feu pour direction Ouest
+            'nord': {},
+            'sud': {},
+            'est': {},
+            'ouest': {}
         }
         
         # Dessiner la scène
@@ -138,22 +139,21 @@ class TurtleScene:
         print("✅ Carrefour dessiné")
     
     def dessiner_feux_tricolores(self):
-        """Dessine 4 feux tricolores bien positionnés pour chaque direction"""
+        """Dessine 4 feux tricolores (un pour chaque direction)"""
         
-        # Positions stratégiques des 4 feux DEVANT chaque flux de voitures
-        # Format: (x_support, y_support, orientation)
+        # Positions des 4 feux - EN DEHORS de la route, à droite de chaque voie
         positions_feux = {
-            # Feu NORD : pour voitures montant (y positif), à gauche de la route
-            'nord': {'x': -60, 'y': 60, 'vertical': True},
+            # Voitures allant vers le NORD (montant ↑) → feu à DROITE sur le trottoir EST
+            'nord': {'x': 70, 'y': -100, 'vertical': True},
             
-            # Feu SUD : pour voitures descendant (y négatif), à droite de la route  
-            'sud': {'x': 60, 'y': -140, 'vertical': True},
+            # Voitures allant vers le SUD (descendant ↓) → feu à DROITE sur le trottoir OUEST
+            'sud': {'x': -70, 'y': 100, 'vertical': True},
             
-            # Feu EST : pour voitures vers la droite (x positif), en haut de la route
-            'est': {'x': 120, 'y': 60, 'vertical': False},
+            # Voitures allant vers l'EST (→) → feu à DROITE sur le trottoir SUD (corrigé)
+            'est': {'x': -130, 'y': -70, 'vertical': False},
             
-            # Feu OUEST : pour voitures vers la gauche (x négatif), en bas de la route
-            'ouest': {'x': -140, 'y': -60, 'vertical': False}
+            # Voitures allant vers l'OUEST (←) → feu à DROITE sur le trottoir NORD (corrigé)
+            'ouest': {'x': 130, 'y': 70, 'vertical': False}
         }
         
         for direction, pos in positions_feux.items():
@@ -161,121 +161,137 @@ class TurtleScene:
             y_base = pos['y']
             is_vertical = pos['vertical']
             
-            # ========== SUPPORT DU FEU ==========
-            support = turtle.Turtle()
-            support.hideturtle()
-            support.speed(0)
-            support.penup()
+            # ========== POTEAU DU FEU ==========
+            poteau = turtle.Turtle()
+            poteau.hideturtle()
+            poteau.speed(0)
+            poteau.penup()
+            poteau.goto(x_base, y_base - 20)
+            poteau.pendown()
+            poteau.color("dimgray")
+            poteau.width(6)
+            poteau.setheading(90)
+            poteau.forward(15)
+            
+            # ========== BOÎTIER DU FEU ==========
+            boitier = turtle.Turtle()
+            boitier.hideturtle()
+            boitier.speed(0)
+            boitier.penup()
             
             if is_vertical:
-                # Feu vertical (3 lumières empilées verticalement)
-                support.goto(x_base - 12, y_base)
-                support.pendown()
-                support.color("black")
-                support.begin_fill()
+                # Boîtier vertical (pour feux EST/OUEST)
+                boitier.goto(x_base - 12, y_base)
+                boitier.pendown()
+                boitier.color("black")
+                boitier.begin_fill()
                 for _ in range(2):
-                    support.forward(24)
-                    support.left(90)
-                    support.forward(75)
-                    support.left(90)
-                support.end_fill()
+                    boitier.forward(24)
+                    boitier.left(90)
+                    boitier.forward(75)
+                    boitier.left(90)
+                boitier.end_fill()
                 
-                # Bordure jaune
-                support.penup()
-                support.goto(x_base - 13, y_base - 1)
-                support.pendown()
-                support.color("gold")
-                support.width(2)
+                # Bordure dorée
+                boitier.penup()
+                boitier.goto(x_base - 13, y_base - 1)
+                boitier.pendown()
+                boitier.color("gold")
+                boitier.width(3)
                 for _ in range(2):
-                    support.forward(26)
-                    support.left(90)
-                    support.forward(77)
-                    support.left(90)
+                    boitier.forward(26)
+                    boitier.left(90)
+                    boitier.forward(77)
+                    boitier.left(90)
                 
-                # Créer les 3 lumières (verticales)
-                positions_lumiere = {
-                    'rouge': y_base + 60,   # En haut
-                    'orange': y_base + 35,  # Au milieu
-                    'vert': y_base + 10     # En bas
+                # Lumières verticales
+                lumiere_positions = {
+                    'rouge': y_base + 60,
+                    'orange': y_base + 37,
+                    'vert': y_base + 14
                 }
                 
-                for couleur, y_pos in positions_lumiere.items():
-                    light = turtle.Turtle()
-                    light.shape("circle")
-                    light.shapesize(1.0)
-                    light.color("gray")
-                    light.fillcolor("gray")
-                    light.penup()
-                    light.goto(x_base, y_pos)
-                    self.feu_turtles[direction][couleur] = light
-            
+                for couleur, y_lumiere in lumiere_positions.items():
+                    lumiere = turtle.Turtle()
+                    lumiere.shape("circle")
+                    lumiere.shapesize(1.1)
+                    lumiere.color("gray")
+                    lumiere.fillcolor("gray")
+                    lumiere.penup()
+                    lumiere.goto(x_base, y_lumiere)
+                    self.feu_turtles[direction][couleur] = lumiere
+                    
             else:
-                # Feu horizontal (3 lumières alignées horizontalement)
-                support.goto(x_base, y_base - 12)
-                support.pendown()
-                support.color("black")
-                support.begin_fill()
+                # Boîtier horizontal (pour feux NORD/SUD)
+                boitier.goto(x_base, y_base - 12)
+                boitier.pendown()
+                boitier.color("black")
+                boitier.begin_fill()
                 for _ in range(2):
-                    support.forward(75)
-                    support.left(90)
-                    support.forward(24)
-                    support.left(90)
-                support.end_fill()
+                    boitier.forward(75)
+                    boitier.left(90)
+                    boitier.forward(24)
+                    boitier.left(90)
+                boitier.end_fill()
                 
-                # Bordure jaune
-                support.penup()
-                support.goto(x_base - 1, y_base - 13)
-                support.pendown()
-                support.color("gold")
-                support.width(2)
+                # Bordure dorée
+                boitier.penup()
+                boitier.goto(x_base - 1, y_base - 13)
+                boitier.pendown()
+                boitier.color("gold")
+                boitier.width(3)
                 for _ in range(2):
-                    support.forward(77)
-                    support.left(90)
-                    support.forward(26)
-                    support.left(90)
+                    boitier.forward(77)
+                    boitier.left(90)
+                    boitier.forward(26)
+                    boitier.left(90)
                 
-                # Créer les 3 lumières (horizontales)
-                positions_lumiere = {
-                    'rouge': x_base + 10,    # À gauche
-                    'orange': x_base + 35,   # Au milieu
-                    'vert': x_base + 60      # À droite
+                # Lumières horizontales
+                lumiere_positions = {
+                    'rouge': x_base + 14,
+                    'orange': x_base + 37,
+                    'vert': x_base + 60
                 }
                 
-                for couleur, x_pos in positions_lumiere.items():
-                    light = turtle.Turtle()
-                    light.shape("circle")
-                    light.shapesize(1.0)
-                    light.color("gray")
-                    light.fillcolor("gray")
-                    light.penup()
-                    light.goto(x_pos, y_base)
-                    self.feu_turtles[direction][couleur] = light
+                for couleur, x_lumiere in lumiere_positions.items():
+                    lumiere = turtle.Turtle()
+                    lumiere.shape("circle")
+                    lumiere.shapesize(1.1)
+                    lumiere.color("gray")
+                    lumiere.fillcolor("gray")
+                    lumiere.penup()
+                    lumiere.goto(x_lumiere, y_base)
+                    self.feu_turtles[direction][couleur] = lumiere
             
-            # Allumer le rouge par défaut
+            # Allumer rouge par défaut
             self.feu_turtles[direction]['rouge'].color("red")
             self.feu_turtles[direction]['rouge'].fillcolor("red")
         
-        print("✅ 4 feux tricolores repositionnés et ordonnés")
+        print("✅ 4 feux tricolores créés - À DROITE de chaque voie:")
+        print("   - NORD (↑): feu à droite (côté EST)")
+        print("   - SUD (↓): feu à droite (côté OUEST)")
+        print("   - EST (→): feu à droite (côté SUD)")
+        print("   - OUEST (←): feu à droite (côté NORD)")
+        
     
     def actualiser_feu(self, etat_ns, etat_eo=None):
         """
-        Met à jour l'affichage des 4 feux avec gestion des priorités
+        Met à jour l'affichage des 4 feux avec synchronisation Nord/Sud et Est/Ouest
         
         Args:
-            etat_ns (str): État des feux Nord/Sud (ROUGE, ORANGE, VERT)
-            etat_eo (str, optional): État des feux Est/Ouest. Si None, inverse de NS
+            etat_ns (str): État des feux Nord et Sud
+            etat_eo (str, optional): État des feux Est et Ouest
         """
-        # Si pas d'état spécifié pour Est/Ouest, utiliser l'inverse
         if etat_eo is None:
             if etat_ns == "VERT":
                 etat_eo = "ROUGE"
             elif etat_ns == "ROUGE":
                 etat_eo = "VERT"
-            else:  # ORANGE
-                etat_eo = "ROUGE"  # Sécurité : Est/Ouest reste rouge pendant l'orange
+            else:
+                etat_eo = "ROUGE"
         
-        # Réinitialiser toutes les lumières
-        for direction in self.feu_turtles:
+        # Éteindre toutes les lumières
+        for direction in ['nord', 'sud', 'est', 'ouest']:
             for lumiere in self.feu_turtles[direction].values():
                 lumiere.color("gray")
                 lumiere.fillcolor("gray")
@@ -289,8 +305,8 @@ class TurtleScene:
                 self.feu_turtles[direction]['orange'].color("orange")
                 self.feu_turtles[direction]['orange'].fillcolor("orange")
             elif etat_ns == "VERT":
-                self.feu_turtles[direction]['vert'].color("green")
-                self.feu_turtles[direction]['vert'].fillcolor("green")
+                self.feu_turtles[direction]['vert'].color("lime")
+                self.feu_turtles[direction]['vert'].fillcolor("lime")
         
         # Allumer Est et Ouest avec etat_eo
         for direction in ['est', 'ouest']:
@@ -301,29 +317,22 @@ class TurtleScene:
                 self.feu_turtles[direction]['orange'].color("orange")
                 self.feu_turtles[direction]['orange'].fillcolor("orange")
             elif etat_eo == "VERT":
-                self.feu_turtles[direction]['vert'].color("green")
-                self.feu_turtles[direction]['vert'].fillcolor("green")
-        
-        print(f"🚦 Feux: Nord/Sud={etat_ns} | Est/Ouest={etat_eo}")
+                self.feu_turtles[direction]['vert'].color("lime")
+                self.feu_turtles[direction]['vert'].fillcolor("lime")
     
     def clignoter_orange(self, visible):
-        """
-        Fait clignoter les feux orange (mode nuit) sur les 4 feux
-        
-        Args:
-            visible (bool): True pour allumer, False pour éteindre
-        """
+        """Fait clignoter les feux orange (mode nuit) sur les 4 feux"""
         if visible:
-            for direction in self.feu_turtles:
+            for direction in ['nord', 'sud', 'est', 'ouest']:
                 self.feu_turtles[direction]['orange'].color("orange")
                 self.feu_turtles[direction]['orange'].fillcolor("orange")
         else:
-            for direction in self.feu_turtles:
+            for direction in ['nord', 'sud', 'est', 'ouest']:
                 self.feu_turtles[direction]['orange'].color("gray")
                 self.feu_turtles[direction]['orange'].fillcolor("gray")
     
     def update(self):
-        """Rafraîchit l'écran (appeler à chaque frame)"""
+        """Rafraîchit l'écran"""
         self.screen.update()
     
     def clear_screen(self):
@@ -332,12 +341,7 @@ class TurtleScene:
         self.screen.bgcolor("lightgray")
     
     def get_screen(self):
-        """
-        Retourne l'objet Screen de Turtle
-        
-        Returns:
-            turtle.Screen: L'écran Turtle
-        """
+        """Retourne l'objet Screen de Turtle"""
         return self.screen
     
     def fermer(self):
@@ -345,16 +349,7 @@ class TurtleScene:
         self.screen.bye()
     
     def ajouter_texte(self, x, y, texte, taille=12, couleur="black"):
-        """
-        Ajoute du texte sur la scène
-        
-        Args:
-            x (float): Position X
-            y (float): Position Y
-            texte (str): Texte à afficher
-            taille (int): Taille de police
-            couleur (str): Couleur du texte
-        """
+        """Ajoute du texte sur la scène"""
         writer = turtle.Turtle()
         writer.hideturtle()
         writer.penup()
@@ -364,7 +359,6 @@ class TurtleScene:
     
     def dessiner_legende(self):
         """Dessine une légende pour l'utilisateur"""
-        # Fond blanc pour la légende
         legend_box = turtle.Turtle()
         legend_box.hideturtle()
         legend_box.speed(0)
@@ -380,7 +374,6 @@ class TurtleScene:
             legend_box.right(90)
         legend_box.end_fill()
         
-        # Bordure
         legend_box.penup()
         legend_box.goto(-380, 320)
         legend_box.pendown()
@@ -392,54 +385,7 @@ class TurtleScene:
             legend_box.forward(80)
             legend_box.right(90)
         
-        # Texte de la légende
         self.ajouter_texte(-280, 300, "Feu Tricolore - Thiès", 10, "black")
         self.ajouter_texte(-280, 280, "🔴 Rouge = Arrêt", 8, "darkred")
         self.ajouter_texte(-280, 260, "🟠 Orange = Ralentir", 8, "orange")
         self.ajouter_texte(-280, 240, "🟢 Vert = Passer", 8, "darkgreen")
-
-
-# Test du module
-if __name__ == "__main__":
-    import time
-    
-    print("\n🧪 Test du module turtle_scene")
-    print("=" * 60)
-    
-    # Créer la scène
-    print("\n1️⃣ Création de la scène...")
-    scene = TurtleScene()
-    
-    # Ajouter une légende
-    print("2️⃣ Ajout de la légende...")
-    scene.dessiner_legende()
-    scene.update()
-    
-    # Test des différents états du feu
-    print("\n3️⃣ Test des états du feu:")
-    
-    etats = ["ROUGE", "ORANGE", "VERT"]
-    
-    for i in range(3):
-        for etat in etats:
-            print(f"   Feu: {etat}")
-            scene.actualiser_feu(etat)
-            scene.update()
-            time.sleep(1.5)
-    
-    # Test du clignotement (mode nuit)
-    print("\n4️⃣ Test du mode clignotant (5 secondes):")
-    for i in range(10):
-        scene.clignoter_orange(i % 2 == 0)
-        scene.update()
-        time.sleep(0.5)
-    
-    # Remettre au rouge
-    scene.actualiser_feu("ROUGE")
-    scene.update()
-    
-    print("\n" + "=" * 60)
-    print("✅ Test terminé - Fermez la fenêtre pour continuer")
-    
-    # Garder la fenêtre ouverte
-    scene.get_screen().mainloop()

@@ -7,6 +7,7 @@ Université Iba Der Thiam de Thiès
 """
 
 import time
+import random
 
 # Imports des modules du projet
 from database import Database
@@ -71,12 +72,23 @@ class SimulationFeuTricolore:
         print("\n🚗 Création des voitures initiales...")
         config = self.scenario.get_config_voitures()
         
-        # Créer 4 voitures au départ
+        # Créer 8 voitures au départ (2 par direction)
         positions = [
-            (-350, 25, 'horizontal'),   # Voiture à gauche
-            (25, -350, 'vertical'),     # Voiture en bas
-            (-250, 25, 'horizontal'),   # Voiture à gauche (2)
-            (25, -250, 'vertical'),     # Voiture en bas (2)
+            # Direction EST (vient de l'ouest, va vers l'est)
+            (-350, 25, 'est'),
+            (-250, 25, 'est'),
+            
+            # Direction OUEST (vient de l'est, va vers l'ouest)
+            (350, -25, 'ouest'),
+            (250, -25, 'ouest'),
+            
+            # Direction NORD (vient du sud, va vers le nord)
+            (25, -350, 'nord'),
+            (25, -250, 'nord'),
+            
+            # Direction SUD (vient du nord, va vers le sud)
+            (-25, 350, 'sud'),
+            (-25, 250, 'sud'),
         ]
         
         for x, y, direction in positions:
@@ -136,8 +148,8 @@ class SimulationFeuTricolore:
                     voiture.detruire()
                     self.voitures.remove(voiture)
                     
-                    # Maintenir 4 voitures en mode démo
-                    if len(self.voitures) < 4:
+                    # Maintenir 8 voitures en mode démo (2 par direction)
+                    if len(self.voitures) < 8:
                         self.creer_voiture_demo()
                     
                     # Mise à jour sécurisée
@@ -150,16 +162,20 @@ class SimulationFeuTricolore:
         """Crée une voiture en mode démo"""
         config = self.scenario.get_config_voitures()
         
-        # CORRECTION: Alterner correctement entre horizontal et vertical
-        # Compter les voitures horizontales et verticales
-        voitures_horizontales = sum(1 for v in self.voitures if v.direction == 'horizontal')
-        voitures_verticales = sum(1 for v in self.voitures if v.direction == 'vertical')
+        # Choisir aléatoirement une direction
+        directions = ['est', 'ouest', 'nord', 'sud']
+        direction = random.choice(directions)
         
-        # Créer le type qui manque
-        if voitures_horizontales <= voitures_verticales:
-            voiture = Vehicle(-350, 25, 'horizontal', self.logger, config)
-        else:
-            voiture = Vehicle(25, -350, 'vertical', self.logger, config)
+        # Positions de spawn selon la direction
+        positions_spawn = {
+            'est': (-350, 25),      # Vient de l'ouest
+            'ouest': (350, -25),     # Vient de l'est
+            'nord': (25, -350),      # Vient du sud
+            'sud': (-25, 350),       # Vient du nord
+        }
+        
+        x, y = positions_spawn[direction]
+        voiture = Vehicle(x, y, direction, self.logger, config)
         
         # Vitesse réduite pour le mode démo
         voiture.vitesse = 1.5
@@ -331,11 +347,20 @@ class SimulationFeuTricolore:
         """Crée une nouvelle voiture durant la simulation"""
         config = self.scenario.get_config_voitures()
         
-        # Alterner entre voitures horizontales et verticales
-        if len(self.voitures) % 2 == 0:
-            voiture = Vehicle(-350, 25, 'horizontal', self.logger, config)
-        else:
-            voiture = Vehicle(25, -350, 'vertical', self.logger, config)
+        # Choisir aléatoirement une direction
+        directions = ['est', 'ouest', 'nord', 'sud']
+        direction = random.choice(directions)
+        
+        # Positions de spawn selon la direction
+        positions_spawn = {
+            'est': (-350, 25),      # Vient de l'ouest
+            'ouest': (350, -25),     # Vient de l'est
+            'nord': (25, -350),      # Vient du sud
+            'sud': (-25, 350),       # Vient du nord
+        }
+        
+        x, y = positions_spawn[direction]
+        voiture = Vehicle(x, y, direction, self.logger, config)
         
         self.voitures.append(voiture)
         
@@ -351,25 +376,39 @@ class SimulationFeuTricolore:
         # Mettre à jour le compteur dans l'interface
         self.gui.update_voitures(len(self.voitures))
         
-        print(f"🚗 Voiture #{voiture.id} créée à ({voiture.x}, {voiture.y})")
+        print(f"🚗 Voiture #{voiture.id} créée à ({voiture.x}, {voiture.y}) - Direction: {direction}")
     
     def gerer_voitures(self):
         """Gère le comportement des voitures selon l'état du feu pour leur direction"""
-        position_feu_horizontal = 120  # Position X du feu pour voitures horizontales
-        position_feu_vertical = 60     # Position Y du feu pour voitures verticales
+        # Positions des feux pour chaque direction
+        positions_feux = {
+            'est': 120,      # Position X du feu pour voitures allant vers l'est
+            'ouest': -120,   # Position X du feu pour voitures allant vers l'ouest
+            'nord': 60,      # Position Y du feu pour voitures allant vers le nord
+            'sud': -60,      # Position Y du feu pour voitures allant vers le sud
+        }
         
         for voiture in self.voitures[:]:
             if not voiture.actif:
                 continue
             
             # Récupérer l'état du feu pour la direction de cette voiture
-            etat_feu_voiture = self.traffic_light.get_etat_pour_direction(voiture.direction)
+            if voiture.direction in ['nord', 'sud']:
+                etat_feu_voiture = self.traffic_light.etat_nord_sud
+            else:  # 'est', 'ouest'
+                etat_feu_voiture = self.traffic_light.etat_est_ouest
             
             # Vérifier si la voiture est avant le feu
-            if voiture.direction == 'horizontal':
-                est_avant_feu = voiture.x < position_feu_horizontal and voiture.x > position_feu_horizontal - 40
-            else:  # vertical
-                est_avant_feu = voiture.y < position_feu_vertical and voiture.y > position_feu_vertical - 40
+            position_feu = positions_feux[voiture.direction]
+            
+            if voiture.direction == 'est':
+                est_avant_feu = voiture.x < position_feu and voiture.x > position_feu - 40
+            elif voiture.direction == 'ouest':
+                est_avant_feu = voiture.x > position_feu and voiture.x < position_feu + 40
+            elif voiture.direction == 'nord':
+                est_avant_feu = voiture.y < position_feu and voiture.y > position_feu - 40
+            else:  # 'sud'
+                est_avant_feu = voiture.y > position_feu and voiture.y < position_feu + 40
             
             # Comportement selon l'état du feu
             if est_avant_feu:
