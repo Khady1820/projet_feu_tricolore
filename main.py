@@ -14,18 +14,18 @@ from database import Database
 from logger import Logger
 from traffic_light import TrafficLight
 from scenarios import CirculationNormale, HeureDePointe, ModeNuit, ModeManuel
-from vehicles import Vehicle
+from vehicle_manager import VehicleManager  # ← CHANGÉ: Utiliser VehicleManager
 from turtle_scene import TurtleScene
 from gui import SimulationGUI
 
-
+DISTANCE_SECURITE = 45  # Distance de sécurité entre les voiture
 class SimulationFeuTricolore:
     """Application principale de simulation"""
     
     def __init__(self):
-        """Initialise l'application complète"""
+        """Initialise l'application complète""" 
         print("\n" + "="*60)
-        print("🚦 SIMULATION FEU TRICOLORE - VILLE DE THIÈS")
+        print("🚦 SIMULATION FEU TRICOLORE - VILLE DE THIÈS")         
         print("="*60)
         
         # Initialisation des composants
@@ -35,8 +35,21 @@ class SimulationFeuTricolore:
         self.scenario = CirculationNormale()
         self.scene = TurtleScene()
         
+        # ========== NOUVEAU: Gestionnaire de véhicules intelligents ==========
+        self.vehicle_manager = VehicleManager(self.logger)
+        
+        # IMAGES: Images orientées automatiquement pour chaque direction
+        # Après avoir lancé orienter_images.py, décommentez:
+        self.vehicle_manager.definir_images_vehicules({
+            'est': 'images/.gif',
+            'ouest': 'images/.gif',
+            'nord': 'images/v2_small2.gif',
+            'sud': 'images/v2_small.gif'
+        })
+        # =====================================================================
+        
         # Variables de simulation
-        self.voitures = []
+        self.voitures = []  # Gardé pour compatibilité
         self.running = False
         self.paused = False
         self.temps_dernier_spawn = time.time()
@@ -92,20 +105,20 @@ class SimulationFeuTricolore:
         ]
         
         for x, y, direction in positions:
-            voiture = Vehicle(x, y, direction, self.logger, config)
-            # IMPORTANT: Donner une vitesse initiale pour qu'elles bougent
-            voiture.vitesse = 2.0  # Vitesse moyenne pour le mode démo
-            self.voitures.append(voiture)
-            self.logger.log_creation_voiture(
-                voiture.id, x, y, voiture.vitesse, scenario=self.scenario.nom
-            )
-            print(f"   🚗 Voiture #{voiture.id} créée à ({x}, {y}) - {direction} - vitesse: {voiture.vitesse}")
+            # ========== NOUVEAU: Utiliser VehicleManager ==========
+            voiture = self.vehicle_manager.ajouter_voiture(x, y, direction, config)
+            # IMPORTANT: Voitures IMMOBILES au départ
+            voiture.vitesse = 0  # ✅ Changé de 2.0 à 0 - immobile jusqu'au Play
+            self.voitures.append(voiture)  # Garder dans la liste pour compatibilité
+            # ====================================================
+            
+            print(f"   🚗 Voiture #{voiture.id} créée à ({x}, {y}) - {direction} - IMMOBILE")
         
         # Mettre à jour le compteur
-        self.gui.update_voitures(len(self.voitures))
+        self.gui.update_voitures(self.vehicle_manager.get_nombre_voitures())
         self.scene.update()
         
-        print(f"✅ {len(self.voitures)} voitures créées et prêtes à rouler")
+        print(f"✅ {self.vehicle_manager.get_nombre_voitures()} voitures créées et prêtes à rouler")
     
     def demarrer_animation_principale(self):
         """Démarre la boucle d'animation principale (appelée par ontimer)"""
@@ -134,30 +147,27 @@ class SimulationFeuTricolore:
         self.scene.get_screen().ontimer(self.animer, 50)
     
     def gerer_voitures_demo(self):
-        """Gère les voitures en mode démo (avant Play)"""
-        for voiture in self.voitures[:]:
-            if voiture.actif:
-                # Donner une vitesse si elle est à 0
-                if voiture.vitesse == 0:
-                    voiture.vitesse = 1.5
-                
-                voiture.avancer()
-                
-                # Supprimer si hors écran et recréer
-                if voiture.est_hors_ecran():
-                    voiture.detruire()
-                    self.voitures.remove(voiture)
-                    
-                    # Maintenir 8 voitures en mode démo (2 par direction)
-                    if len(self.voitures) < 8:
-                        self.creer_voiture_demo()
-                    
-                    # Mise à jour sécurisée
-                    try:
-                        self.gui.update_voitures(len(self.voitures))
-                    except:
-                        pass  # Ignorer si interface fermée
-    
+        """Gère les voitures en mode démo (avant Play) - IMMOBILES"""
+        # ✅ Les voitures restent IMMOBILES jusqu'au clic sur "Play"
+        # Ne rien faire - les voitures gardent leur vitesse = 0
+        pass
+
+    def voiture_devant(self, voiture):
+        for autre in self.vehicle_manager.voitures:
+            if autre == voiture or not autre.actif:
+                continue
+
+            if voiture.direction == autre.direction:
+                if voiture.direction == 'est' and autre.x > voiture.x and abs(autre.y - voiture.y) < 10:
+                    return autre
+                if voiture.direction == 'ouest' and autre.x < voiture.x and abs(autre.y - voiture.y) < 10:
+                    return autre
+                if voiture.direction == 'nord' and autre.y > voiture.y and abs(autre.x - voiture.x) < 10:
+                    return autre
+                if voiture.direction == 'sud' and autre.y < voiture.y and abs(autre.x - voiture.x) < 10:
+                    return autre
+        return None   
+
     def creer_voiture_demo(self):
         """Crée une voiture en mode démo"""
         config = self.scenario.get_config_voitures()
@@ -175,15 +185,16 @@ class SimulationFeuTricolore:
         }
         
         x, y = positions_spawn[direction]
-        voiture = Vehicle(x, y, direction, self.logger, config)
         
-        # Vitesse réduite pour le mode démo
+        # ========== NOUVEAU: Utiliser VehicleManager ==========
+        voiture = self.vehicle_manager.ajouter_voiture(x, y, direction, config)
         voiture.vitesse = 1.5
         self.voitures.append(voiture)
+        # ====================================================
         
         # Mise à jour sécurisée de l'interface
         try:
-            self.gui.update_voitures(len(self.voitures))
+            self.gui.update_voitures(self.vehicle_manager.get_nombre_voitures())
         except:
             pass  # Ignorer les erreurs si l'interface est fermée
     
@@ -255,6 +266,11 @@ class SimulationFeuTricolore:
             self.running = True
             self.paused = False
             
+            # ========== NOUVEAU: Enregistrer les feux pour détection ==========
+            # Les voitures pourront détecter automatiquement les feux rouges
+            self.vehicle_manager.enregistrer_feux([self.traffic_light])
+            # ================================================================
+            
             # Mettre à jour l'interface
             try:
                 self.gui.update_etat("État: En cours", "green")
@@ -317,10 +333,10 @@ class SimulationFeuTricolore:
         """Réinitialise complètement la simulation"""
         self.stop()
         
-        # Supprimer toutes les voitures
-        for voiture in self.voitures:
-            voiture.detruire()
+        # ========== NOUVEAU: Utiliser VehicleManager pour nettoyer ==========
+        self.vehicle_manager.detruire_toutes()
         self.voitures.clear()
+        # ==================================================================
         
         # Réinitialiser les feux à ROUGE partout
         self.traffic_light.etat_nord_sud = TrafficLight.ROUGE
@@ -360,43 +376,37 @@ class SimulationFeuTricolore:
         }
         
         x, y = positions_spawn[direction]
-        voiture = Vehicle(x, y, direction, self.logger, config)
         
+        # ========== NOUVEAU: Utiliser VehicleManager ==========
+        voiture = self.vehicle_manager.ajouter_voiture(x, y, direction, config)
         self.voitures.append(voiture)
-        
-        # Journaliser la création
-        self.logger.log_creation_voiture(
-            voiture.id,
-            voiture.x,
-            voiture.y,
-            voiture.vitesse,
-            scenario=self.scenario.nom
-        )
+        # ====================================================
         
         # Mettre à jour le compteur dans l'interface
-        self.gui.update_voitures(len(self.voitures))
+        self.gui.update_voitures(self.vehicle_manager.get_nombre_voitures())
         
         print(f"🚗 Voiture #{voiture.id} créée à ({voiture.x}, {voiture.y}) - Direction: {direction}")
     
     def gerer_voitures(self):
-        """Gère le comportement des voitures selon l'état du feu pour leur direction"""
-        # Positions des feux pour chaque direction
+        """
+        ========== NOUVELLE VERSION INTELLIGENTE ==========
+        Gère le comportement des voitures avec détection automatique des dangers
+        Les voitures s'arrêtent AVANT les passages piétons
+        """
+        # Positions des feux - Les voitures doivent s'arrêter AVANT les passages piétons
         positions_feux = {
-            'est': 120,      # Position X du feu pour voitures allant vers l'est
-            'ouest': -120,   # Position X du feu pour voitures allant vers l'ouest
-            'nord': 60,      # Position Y du feu pour voitures allant vers le nord
-            'sud': -60,      # Position Y du feu pour voitures allant vers le sud
+            'est': 100,      # ✅ S'arrête avant passage piéton (125)
+            'ouest': -100,   # ✅ S'arrête avant passage piéton (-125)
+            'nord': 100,     # ✅ S'arrête avant passage piéton (125)
+            'sud': -100,     # ✅ S'arrête avant passage piéton (-125)
         }
         
-        for voiture in self.voitures[:]:
+        for voiture in self.vehicle_manager.voitures[:]:
             if not voiture.actif:
                 continue
             
-            # Récupérer l'état du feu pour la direction de cette voiture
-            if voiture.direction in ['nord', 'sud']:
-                etat_feu_voiture = self.traffic_light.etat_nord_sud
-            else:  # 'est', 'ouest'
-                etat_feu_voiture = self.traffic_light.etat_est_ouest
+            # Récupérer l'état du feu SPÉCIFIQUE à cette direction
+            etat_feu_voiture = self.traffic_light.get_etat_pour_direction(voiture.direction)
             
             # Vérifier si la voiture est avant le feu
             position_feu = positions_feux[voiture.direction]
@@ -410,28 +420,60 @@ class SimulationFeuTricolore:
             else:  # 'sud'
                 est_avant_feu = voiture.y > position_feu and voiture.y < position_feu + 40
             
-            # Comportement selon l'état du feu
-            if est_avant_feu:
-                if etat_feu_voiture == TrafficLight.ROUGE:
-                    voiture.arreter()
-                elif etat_feu_voiture == TrafficLight.VERT:
-                    voiture.demarrer()
-                elif etat_feu_voiture == TrafficLight.ORANGE:
-                    if voiture.vitesse > 0:
+            # ========== NOUVEAU: Détection intelligente des dangers ==========
+            if voiture.detection_active:
+                # Détecter les dangers (collisions + feux rouges)
+                dangers = voiture.detecter_danger(self.vehicle_manager.voitures, [self.traffic_light])
+                
+                # Comportement selon l'état du feu ET les dangers détectés
+                if est_avant_feu:
+                    if etat_feu_voiture == TrafficLight.ROUGE or dangers['collision_imminente']:
                         voiture.arreter()
+                    elif etat_feu_voiture == TrafficLight.VERT and not dangers['collision_imminente']:
+                        voiture.demarrer()
+                    elif etat_feu_voiture == TrafficLight.ORANGE:
+                        if voiture.vitesse > 0:
+                            voiture.arreter()
+                else:
+                    # Après le feu, vérifier quand même les collisions
+                    if dangers['collision_imminente']:
+                        voiture.arreter()
+                    else:
+                        voiture.demarrer()
             else:
-                # Après le feu, accélérer
-                voiture.demarrer()
-            
+                # Mode simple (sans détection)
+                if est_avant_feu:
+                    if etat_feu_voiture == TrafficLight.ROUGE:
+                        voiture.arreter()
+                    elif etat_feu_voiture == TrafficLight.VERT:
+                        voiture.demarrer()
+                    elif etat_feu_voiture == TrafficLight.ORANGE:
+                        if voiture.vitesse > 0:
+                            voiture.arreter()
+                else:
+                    voiture.demarrer()
+            # ================================================================
+            voiture_devant = self.voiture_devant(voiture)
+
+            if voiture_devant:
+                if voiture.direction in ['est', 'ouest']:
+                    distance = abs(voiture_devant.x - voiture.x)
+                else:
+                    distance = abs(voiture_devant.y - voiture.y)
+
+                if distance < DISTANCE_SECURITE:
+                    voiture.arreter()
+                    continue
             # Faire avancer la voiture
             voiture.avancer()
-            
+             
             # Supprimer si hors écran
             if voiture.est_hors_ecran():
-                voiture.detruire()
-                self.voitures.remove(voiture)
+                self.vehicle_manager.supprimer_voiture(voiture)
+                if voiture in self.voitures:
+                    self.voitures.remove(voiture)
                 try:
-                    self.gui.update_voitures(len(self.voitures))
+                    self.gui.update_voitures(self.vehicle_manager.get_nombre_voitures())
                 except:
                     pass
     
@@ -440,7 +482,7 @@ class SimulationFeuTricolore:
         durees = self.scenario.get_durees_feu()
         config = self.scenario.get_config_voitures()
         temps_actuel = time.time()
-        
+         
         # Mode nuit (clignotant)
         if isinstance(self.scenario, ModeNuit):
             if temps_actuel - self.temps_clignotement >= 1.0:
@@ -449,7 +491,7 @@ class SimulationFeuTricolore:
                 self.temps_clignotement = temps_actuel
             
             if (temps_actuel - self.temps_dernier_spawn >= config['intervalle_spawn'] 
-                and len(self.voitures) < config['nombre_max']):
+                and self.vehicle_manager.get_nombre_voitures() < config['nombre_max']):
                 self.creer_voiture()
                 self.temps_dernier_spawn = temps_actuel
             
@@ -459,37 +501,60 @@ class SimulationFeuTricolore:
         # Mode manuel
         if isinstance(self.scenario, ModeManuel):
             if (temps_actuel - self.temps_dernier_spawn >= config['intervalle_spawn'] 
-                and len(self.voitures) < config['nombre_max']):
+                and self.vehicle_manager.get_nombre_voitures() < config['nombre_max']):
                 self.creer_voiture()
                 self.temps_dernier_spawn = temps_actuel
             
             self.gerer_voitures()
             return
         
-        # Mode automatique avec ALTERNANCE Nord/Sud <-> Est/Ouest
+       # Mode automatique avec ALTERNANCE Nord/Sud <-> Est/Ouest
         cycle_complet = [
-            ("NS", TrafficLight.VERT, durees['vert']),      # Nord/Sud VERT
-            ("NS", TrafficLight.ORANGE, durees['orange']),  # Nord/Sud ORANGE
-            ("NS", TrafficLight.ROUGE, 1.0),                # Nord/Sud ROUGE (transition)
-            ("EO", TrafficLight.VERT, durees['vert']),      # Est/Ouest VERT
-            ("EO", TrafficLight.ORANGE, durees['orange']),  # Est/Ouest ORANGE
-            ("EO", TrafficLight.ROUGE, 1.0),                # Est/Ouest ROUGE (transition)
+            # Phase 1 : Nord/Sud a la priorité
+            ("VERT_NS", durees['vert']),      # NS=VERT, EO=ROUGE
+            ("ORANGE_NS", durees['orange']),  # NS=ORANGE, EO=ROUGE
+            ("ROUGE_TOUS", 1.5),              # SÉCURITÉ: Tout rouge 1.5s
+            
+            # Phase 2: Est/Ouest a la priorité
+            ("VERT_EO", durees['vert']),      # NS=ROUGE, EO=VERT
+            ("ORANGE_EO", durees['orange']),  # NS=ROUGE, EO=ORANGE
+            ("ROUGE_TOUS", 1.5),              # SÉCURITÉ: Tout rouge 1.5s
+            
         ]
         
-        axe, etat, duree = cycle_complet[self.index_etat_feu]
-        
+        phase, duree = cycle_complet[self.index_etat_feu]
+
         if temps_actuel - self.temps_debut_etat >= duree:
             # Passer à l'état suivant
             self.index_etat_feu = (self.index_etat_feu + 1) % len(cycle_complet)
-            axe, etat, duree = cycle_complet[self.index_etat_feu]
+            phase, duree = cycle_complet[self.index_etat_feu]
             
-            # Appliquer le changement
-            if axe == "NS":
-                self.traffic_light.etat_nord_sud = etat
+            # Appliquer le changement selon la phase
+            if phase == "VERT_NS":
+                self.traffic_light.etat_nord_sud = TrafficLight.VERT
                 self.traffic_light.etat_est_ouest = TrafficLight.ROUGE
-            else:  # EO
+                print("🟢 Nord/Sud VERT | Est/Ouest ROUGE")
+            
+            elif phase == "ORANGE_NS":
+                self.traffic_light.etat_nord_sud = TrafficLight.ORANGE
+                self.traffic_light.etat_est_ouest = TrafficLight.ROUGE
+                print("🟠 Nord/Sud ORANGE | Est/Ouest ROUGE")
+            
+            elif phase == "VERT_EO":
                 self.traffic_light.etat_nord_sud = TrafficLight.ROUGE
-                self.traffic_light.etat_est_ouest = etat
+                self.traffic_light.etat_est_ouest = TrafficLight.VERT
+                print("🔴 Nord/Sud ROUGE | Est/Ouest VERT 🟢")
+            
+            elif phase == "ORANGE_EO":
+                self.traffic_light.etat_nord_sud = TrafficLight.ROUGE
+                self.traffic_light.etat_est_ouest = TrafficLight.ORANGE
+                print("🔴 Nord/Sud ROUGE | Est/Ouest ORANGE 🟠")
+            
+            elif phase == "ROUGE_TOUS":
+                # PHASE DE SÉCURITÉ: Tout le monde s'arrête
+                self.traffic_light.etat_nord_sud = TrafficLight.ROUGE
+                self.traffic_light.etat_est_ouest = TrafficLight.ROUGE
+                print("🔴 SÉCURITÉ: Tous les feux ROUGES 🔴")
             
             # Mettre à jour l'affichage
             self.scene.actualiser_feu(self.traffic_light.etat_nord_sud, self.traffic_light.etat_est_ouest)
@@ -502,7 +567,7 @@ class SimulationFeuTricolore:
         
         # Création de nouvelles voitures
         if (temps_actuel - self.temps_dernier_spawn >= config['intervalle_spawn'] 
-            and len(self.voitures) < config['nombre_max']):
+            and self.vehicle_manager.get_nombre_voitures() < config['nombre_max']):
             self.creer_voiture()
             self.temps_dernier_spawn = temps_actuel
         
@@ -513,7 +578,11 @@ class SimulationFeuTricolore:
         """Lance l'application"""
         print("\n🚀 Lancement de l'interface utilisateur...")
         print("👁️  Les voitures sont déjà visibles sur le carrefour")
-        print("▶️  Cliquez sur 'Démarrer' pour activer le feu et la simulation complète\n")
+        print("▶️  Cliquez sur 'Démarrer' pour activer le feu et la simulation complète")
+        print("\n🎨 IMAGES DE VÉHICULES:")
+        print("   → Les voitures utiliseront des images si disponibles")
+        print("   → Placez vos fichiers .gif dans le dossier 'images/'")
+        print("   → Sinon, des rectangles colorés seront utilisés\n")
         self.gui.run()
 
 

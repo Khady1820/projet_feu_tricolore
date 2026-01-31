@@ -1,6 +1,7 @@
 """
 Module de gestion de la scène graphique
 Dessin du carrefour, routes et feu tricolore avec Turtle
+STYLE: Routes larges bleues comme sur l'image de référence
 """
 
 import turtle
@@ -20,8 +21,8 @@ class TurtleScene:
         self.screen = turtle.Screen()
         self.screen.setup(width=largeur, height=hauteur)
         self.screen.title("Simulation Feu Tricolore - Ville de Thiès")
-        self.screen.bgcolor("lightgray")
-        self.screen.tracer(0)  # Désactive le rafraîchissement automatique pour performance
+        self.screen.bgcolor("#E8E8E8")  # Gris clair comme l'image
+        self.screen.tracer(0)
         
         # 4 feux (un pour chaque direction)
         self.feu_turtles = {
@@ -35,40 +36,41 @@ class TurtleScene:
         self.dessiner_carrefour()
         self.dessiner_feux_tricolores()
         
-        print("✅ Scène Turtle initialisée")
+        print("✅ Scène Turtle initialisée (Style image - Routes bleues larges)")
     
     def dessiner_carrefour(self):
-        """Dessine le carrefour avec routes et marquages au sol"""
+        """Dessine le carrefour avec routes larges bleues et marquages"""
         drawer = turtle.Turtle()
         drawer.hideturtle()
         drawer.speed(0)
         drawer.penup()
         
-        # ========== ROUTE HORIZONTALE ==========
-        drawer.goto(-400, -50)
+        # ========== ROUTE HORIZONTALE (BLEUE) ==========
+        drawer.goto(-400, -120)
         drawer.pendown()
-        drawer.color("black")
+        drawer.color("#A8C5DD")  # Bleu clair comme l'image
         drawer.begin_fill()
         for _ in range(2):
             drawer.forward(800)
             drawer.left(90)
-            drawer.forward(100)
+            drawer.forward(240)  # ✅ Route très large
             drawer.left(90)
         drawer.end_fill()
         
-        # ========== ROUTE VERTICALE ==========
+        # ========== ROUTE VERTICALE (BLEUE) ==========
         drawer.penup()
-        drawer.goto(-50, -400)
+        drawer.goto(-120, -400)
         drawer.pendown()
         drawer.begin_fill()
         for _ in range(2):
-            drawer.forward(100)
+            drawer.forward(240)  # ✅ Route très large
             drawer.left(90)
             drawer.forward(800)
             drawer.left(90)
         drawer.end_fill()
         
-        # ========== LIGNE MÉDIANE HORIZONTALE (jaune) ==========
+        # ========== LIGNE MÉDIANE HORIZONTALE (jaune discontinue) ==========
+        # S'arrête avant les passages piétons (au centre du carrefour)
         drawer.penup()
         drawer.goto(-400, 0)
         drawer.setheading(0)
@@ -76,8 +78,8 @@ class TurtleScene:
         drawer.color("yellow")
         drawer.width(3)
         
-        # Ligne discontinue
-        for i in range(20):
+        # Ligne de gauche jusqu'au carrefour
+        for i in range(7):  # S'arrête à -120 (bord route verticale)
             if i % 2 == 0:
                 drawer.forward(40)
             else:
@@ -85,13 +87,29 @@ class TurtleScene:
                 drawer.forward(40)
                 drawer.pendown()
         
-        # ========== LIGNE MÉDIANE VERTICALE (jaune) ==========
+        # Saut du carrefour (zone des passages piétons)
+        drawer.penup()
+        drawer.goto(120, 0)  # Reprend après le carrefour
+        drawer.pendown()
+        
+        # Ligne de droite après le carrefour
+        for i in range(7):
+            if i % 2 == 0:
+                drawer.forward(40)
+            else:
+                drawer.penup()
+                drawer.forward(40)
+                drawer.pendown()
+        
+        # ========== LIGNE MÉDIANE VERTICALE (jaune discontinue) ==========
+        # S'arrête avant les passages piétons (au centre du carrefour)
         drawer.penup()
         drawer.goto(0, -400)
         drawer.setheading(90)
         drawer.pendown()
         
-        for i in range(20):
+        # Ligne du bas jusqu'au carrefour
+        for i in range(7):  # S'arrête à -120 (bord route horizontale)
             if i % 2 == 0:
                 drawer.forward(40)
             else:
@@ -99,79 +117,109 @@ class TurtleScene:
                 drawer.forward(40)
                 drawer.pendown()
         
-        # ========== MARQUAGES AU SOL (passages piétons) ==========
+        # Saut du carrefour
+        drawer.penup()
+        drawer.goto(0, 120)  # Reprend après le carrefour
+        drawer.pendown()
+        
+        # Ligne du haut après le carrefour
+        for i in range(7):
+            if i % 2 == 0:
+                drawer.forward(40)
+            else:
+                drawer.penup()
+                drawer.forward(40)
+                drawer.pendown()
+        
+        # ========== BORDURES BLANCHES DES ROUTES ==========
         drawer.penup()
         drawer.color("white")
-        drawer.width(5)
+        drawer.width(3)
         
-        # Passage piéton Nord (haut de la route verticale)
-        for i in range(6):
-            drawer.goto(-45 + i*15, 120)
+        # Bordure haute route horizontale
+        drawer.goto(-400, 120)
+        drawer.pendown()
+        drawer.goto(400, 120)
+        
+        # Bordure basse route horizontale
+        drawer.penup()
+        drawer.goto(-400, -120)
+        drawer.pendown()
+        drawer.goto(400, -120)
+        
+        # Bordure gauche route verticale
+        drawer.penup()
+        drawer.goto(-120, -400)
+        drawer.pendown()
+        drawer.goto(-120, 400)
+        
+        # Bordure droite route verticale
+        drawer.penup()
+        drawer.goto(120, -400)
+        drawer.pendown()
+        drawer.goto(120, 400)
+        
+        # ========== PASSAGES PIÉTONS (blancs épais) - DANS LE CARRÉ ==========
+        drawer.penup()
+        drawer.color("white")
+        drawer.width(8)
+        
+        # Passage piéton Nord (à l'intérieur du carrefour, juste après la bordure)
+        for i in range(16):
+            drawer.goto(-115 + i*15, 125)  # Changé de 220 à 125 (dans le carré)
             drawer.setheading(90)
             drawer.pendown()
-            drawer.forward(15)
+            drawer.forward(30)  # Plus court
             drawer.penup()
         
-        # Passage piéton Sud (bas de la route verticale)
-        for i in range(6):
-            drawer.goto(-45 + i*15, -135)
+        # Passage piéton Sud (à l'intérieur du carrefour)
+        for i in range(16):
+            drawer.goto(-115 + i*15, -155)  # Changé de -240 à -155 (dans le carré)
             drawer.setheading(90)
             drawer.pendown()
-            drawer.forward(15)
+            drawer.forward(30)  # Plus court
             drawer.penup()
         
-        # Passage piéton Est (droite de la route horizontale)
-        for i in range(6):
-            drawer.goto(120, -45 + i*15)
+        # Passage piéton Est (à l'intérieur du carrefour)
+        for i in range(16):
+            drawer.goto(125, -115 + i*15)  # Changé de 220 à 125 (dans le carré)
             drawer.setheading(0)
             drawer.pendown()
-            drawer.forward(15)
+            drawer.forward(30)  # Plus court
             drawer.penup()
         
-        # Passage piéton Ouest (gauche de la route horizontale)
-        for i in range(6):
-            drawer.goto(-135, -45 + i*15)
+        # Passage piéton Ouest (à l'intérieur du carrefour)
+        for i in range(16):
+            drawer.goto(-155, -115 + i*15)  # Changé de -240 à -155 (dans le carré)
             drawer.setheading(0)
             drawer.pendown()
-            drawer.forward(15)
+            drawer.forward(30)  # Plus court
             drawer.penup()
         
-        print("✅ Carrefour dessiné")
+        print("✅ Carrefour dessiné (style image - routes bleues 240px)")
     
     def dessiner_feux_tricolores(self):
-        """Dessine 4 feux tricolores (un pour chaque direction)"""
+        """Dessine 4 feux tricolores (aux coins du carrefour, pas au milieu)"""
         
-        # Positions des 4 feux - EN DEHORS de la route, à droite de chaque voie
+        # Positions des 4 feux - AUX COINS comme l'image
         positions_feux = {
-            # Voitures allant vers le NORD (montant ↑) → feu à DROITE sur le trottoir EST
-            'nord': {'x': 70, 'y': -100, 'vertical': True},
+            # NORD : Feu VERTICAL en bas à gauche du carrefour
+            'nord': {'x': -140, 'y': 130, 'vertical': True},
             
-            # Voitures allant vers le SUD (descendant ↓) → feu à DROITE sur le trottoir OUEST
-            'sud': {'x': -70, 'y': 100, 'vertical': True},
+            # SUD : Feu VERTICAL en haut à droite du carrefour  
+            'sud': {'x': 140, 'y': -130, 'vertical': True},
             
-            # Voitures allant vers l'EST (→) → feu à DROITE sur le trottoir SUD (corrigé)
-            'est': {'x': -130, 'y': -70, 'vertical': False},
+            # EST : Feu HORIZONTAL en haut à gauche du carrefour
+            'est': {'x': 130, 'y': 140, 'vertical': False},
             
-            # Voitures allant vers l'OUEST (←) → feu à DROITE sur le trottoir NORD (corrigé)
-            'ouest': {'x': 130, 'y': 70, 'vertical': False}
+            # OUEST : Feu HORIZONTAL en bas à droite du carrefour
+            'ouest': {'x': -130, 'y': -140, 'vertical': False}
         }
         
         for direction, pos in positions_feux.items():
             x_base = pos['x']
             y_base = pos['y']
             is_vertical = pos['vertical']
-            
-            # ========== POTEAU DU FEU ==========
-            poteau = turtle.Turtle()
-            poteau.hideturtle()
-            poteau.speed(0)
-            poteau.penup()
-            poteau.goto(x_base, y_base - 20)
-            poteau.pendown()
-            poteau.color("dimgray")
-            poteau.width(6)
-            poteau.setheading(90)
-            poteau.forward(15)
             
             # ========== BOÎTIER DU FEU ==========
             boitier = turtle.Turtle()
@@ -180,83 +228,59 @@ class TurtleScene:
             boitier.penup()
             
             if is_vertical:
-                # Boîtier vertical (pour feux EST/OUEST)
-                boitier.goto(x_base - 12, y_base)
+                # ===== FEU VERTICAL (Nord/Sud) =====
+                boitier.goto(x_base - 10, y_base - 45)
                 boitier.pendown()
                 boitier.color("black")
                 boitier.begin_fill()
                 for _ in range(2):
-                    boitier.forward(24)
+                    boitier.forward(20)
                     boitier.left(90)
-                    boitier.forward(75)
+                    boitier.forward(90)
                     boitier.left(90)
                 boitier.end_fill()
                 
-                # Bordure dorée
-                boitier.penup()
-                boitier.goto(x_base - 13, y_base - 1)
-                boitier.pendown()
-                boitier.color("gold")
-                boitier.width(3)
-                for _ in range(2):
-                    boitier.forward(26)
-                    boitier.left(90)
-                    boitier.forward(77)
-                    boitier.left(90)
-                
-                # Lumières verticales
+                # Lumières verticales (Rouge en haut, Vert en bas)
                 lumiere_positions = {
-                    'rouge': y_base + 60,
-                    'orange': y_base + 37,
-                    'vert': y_base + 14
+                    'rouge': y_base + 30,
+                    'orange': y_base,
+                    'vert': y_base - 30
                 }
                 
                 for couleur, y_lumiere in lumiere_positions.items():
                     lumiere = turtle.Turtle()
                     lumiere.shape("circle")
-                    lumiere.shapesize(1.1)
+                    lumiere.shapesize(0.8)
                     lumiere.color("gray")
                     lumiere.fillcolor("gray")
                     lumiere.penup()
                     lumiere.goto(x_base, y_lumiere)
                     self.feu_turtles[direction][couleur] = lumiere
-                    
+            
             else:
-                # Boîtier horizontal (pour feux NORD/SUD)
-                boitier.goto(x_base, y_base - 12)
+                # ===== FEU HORIZONTAL (Est/Ouest) =====
+                boitier.goto(x_base - 45, y_base - 10)
                 boitier.pendown()
                 boitier.color("black")
                 boitier.begin_fill()
                 for _ in range(2):
-                    boitier.forward(75)
+                    boitier.forward(90)
                     boitier.left(90)
-                    boitier.forward(24)
+                    boitier.forward(20)
                     boitier.left(90)
                 boitier.end_fill()
                 
-                # Bordure dorée
-                boitier.penup()
-                boitier.goto(x_base - 1, y_base - 13)
-                boitier.pendown()
-                boitier.color("gold")
-                boitier.width(3)
-                for _ in range(2):
-                    boitier.forward(77)
-                    boitier.left(90)
-                    boitier.forward(26)
-                    boitier.left(90)
-                
-                # Lumières horizontales
+                # Lumières horizontales (Rouge à gauche, Vert à droite)
                 lumiere_positions = {
-                    'rouge': x_base + 14,
-                    'orange': x_base + 37,
-                    'vert': x_base + 60
+                    'rouge': x_base - 30,
+                    'orange': x_base,
+                    'vert': x_base + 30
                 }
                 
                 for couleur, x_lumiere in lumiere_positions.items():
                     lumiere = turtle.Turtle()
                     lumiere.shape("circle")
-                    lumiere.shapesize(1.1)
+                    lumiere.shapesize(0.8)
                     lumiere.color("gray")
                     lumiere.fillcolor("gray")
                     lumiere.penup()
@@ -267,16 +291,15 @@ class TurtleScene:
             self.feu_turtles[direction]['rouge'].color("red")
             self.feu_turtles[direction]['rouge'].fillcolor("red")
         
-        print("✅ 4 feux tricolores créés - À DROITE de chaque voie:")
-        print("   - NORD (↑): feu à droite (côté EST)")
-        print("   - SUD (↓): feu à droite (côté OUEST)")
-        print("   - EST (→): feu à droite (côté SUD)")
-        print("   - OUEST (←): feu à droite (côté NORD)")
-        
+        print("✅ 4 feux tricolores créés aux COINS du carrefour:")
+        print("   - NORD: Vertical en bas-gauche")
+        print("   - SUD: Vertical en haut-droite")
+        print("   - EST: Horizontal en haut-gauche")
+        print("   - OUEST: Horizontal en bas-droite")
     
     def actualiser_feu(self, etat_ns, etat_eo=None):
         """
-        Met à jour l'affichage des 4 feux avec synchronisation Nord/Sud et Est/Ouest
+        Met à jour l'affichage des 4 feux
         
         Args:
             etat_ns (str): État des feux Nord et Sud
@@ -296,7 +319,7 @@ class TurtleScene:
                 lumiere.color("gray")
                 lumiere.fillcolor("gray")
         
-        # Allumer Nord et Sud avec etat_ns
+        # Allumer Nord et Sud
         for direction in ['nord', 'sud']:
             if etat_ns == "ROUGE":
                 self.feu_turtles[direction]['rouge'].color("red")
@@ -308,7 +331,7 @@ class TurtleScene:
                 self.feu_turtles[direction]['vert'].color("lime")
                 self.feu_turtles[direction]['vert'].fillcolor("lime")
         
-        # Allumer Est et Ouest avec etat_eo
+        # Allumer Est et Ouest
         for direction in ['est', 'ouest']:
             if etat_eo == "ROUGE":
                 self.feu_turtles[direction]['rouge'].color("red")
@@ -321,7 +344,7 @@ class TurtleScene:
                 self.feu_turtles[direction]['vert'].fillcolor("lime")
     
     def clignoter_orange(self, visible):
-        """Fait clignoter les feux orange (mode nuit) sur les 4 feux"""
+        """Fait clignoter les feux orange (mode nuit)"""
         if visible:
             for direction in ['nord', 'sud', 'est', 'ouest']:
                 self.feu_turtles[direction]['orange'].color("orange")
@@ -338,7 +361,7 @@ class TurtleScene:
     def clear_screen(self):
         """Efface tout l'écran"""
         self.screen.clear()
-        self.screen.bgcolor("lightgray")
+        self.screen.bgcolor("#E8E8E8")
     
     def get_screen(self):
         """Retourne l'objet Screen de Turtle"""
